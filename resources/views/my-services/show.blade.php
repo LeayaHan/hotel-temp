@@ -2,17 +2,58 @@
 
 @section('content')
 
-<div class="card">
-    <div class="page-header" style="margin-bottom:0">
-        <h1>Welcome, {{ Auth::user()->name }} 👋</h1>
-        <p>Need something during your stay? Submit a service request and our team will take care of it.</p>
+<div class="page-header">
+    <h1>Request Details</h1>
+    <p>Viewing service request #{{ $serviceRequest->id }}</p>
+</div>
+
+<div class="card" style="max-width:620px;">
+    @php
+        $s = $serviceRequest->status ?? 'Open';
+        $cls = match($s) {
+            'Open' => 'badge-open', 'In Progress' => 'badge-progress',
+            'Completed' => 'badge-done', 'Cancelled' => 'badge-cancelled',
+            default => 'badge-normal'
+        };
+        $p = strtolower($serviceRequest->priority ?? 'normal');
+    @endphp
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+        <span class="badge {{ $cls }}" style="font-size:.82rem;">{{ $s }}</span>
+        <span class="badge badge-{{ $p }}" style="font-size:.82rem;">{{ ucfirst($p) }} Priority</span>
     </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;">
-        <a href="{{ route('my-services.create') }}" class="btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Service Request
-        </a>
-        <a href="{{ route('my-services.index') }}" class="btn btn-secondary">View My Requests</a>
+
+    <table style="border:none;background:transparent;">
+        <tbody>
+            <tr>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:160px;">Service Type</td>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);font-weight:600;">{{ $serviceRequest->service_type }}</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Details</td>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);">{{ $serviceRequest->details ?: '—' }}</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Submitted</td>
+                <td style="padding:10px 0;border-bottom:1px solid var(--border);">{{ $serviceRequest->created_at->format('F d, Y \a\t g:i A') }}</td>
+            </tr>
+            <tr>
+                <td style="padding:10px 0;color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Last Updated</td>
+                <td style="padding:10px 0;">{{ $serviceRequest->updated_at->format('F d, Y \a\t g:i A') }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="form-actions" style="margin-top:24px;">
+        @if($serviceRequest->status === 'Open')
+            <a href="{{ route('my-services.edit', $serviceRequest) }}" class="btn">Edit Request</a>
+            <form method="POST" action="{{ route('my-services.destroy', $serviceRequest) }}"
+                  onsubmit="return confirm('Cancel this request?')">
+                @csrf @method('DELETE')
+                <button type="submit" class="btn btn-danger">Cancel Request</button>
+            </form>
+        @endif
+        <a href="{{ route('my-services.index') }}" class="btn btn-secondary">← Back</a>
     </div>
 </div>
 

@@ -10,21 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\GuestController;
-use App\Http\Controllers\ServiceRequestController;
-use App\Http\Controllers\MyServiceRequestController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
-
-    // existing dashboard route stays here...
-
-    // Staff & Admin only
-    Route::resource('guests', GuestController::class);
-    Route::resource('service-requests', ServiceRequestController::class);
-
-    // Guest only
-    Route::resource('my-services', MyServiceRequestController::class);
-});
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
