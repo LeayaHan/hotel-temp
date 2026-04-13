@@ -3,58 +3,56 @@
 @section('content')
 
 <div class="page-header">
-    <h1>Request Details</h1>
-    <p>Viewing service request #{{ $serviceRequest->id }}</p>
+    <h1>Edit Request</h1>
+    <p>Update your service request #{{ $serviceRequest->id }}.</p>
 </div>
 
 <div class="card" style="max-width:620px;">
-    @php
-        $s = $serviceRequest->status ?? 'Open';
-        $cls = match($s) {
-            'Open' => 'badge-open', 'In Progress' => 'badge-progress',
-            'Completed' => 'badge-done', 'Cancelled' => 'badge-cancelled',
-            default => 'badge-normal'
-        };
-        $p = strtolower($serviceRequest->priority ?? 'normal');
-    @endphp
+    <form method="POST" action="{{ route('my-services.update', $serviceRequest) }}">
+        @csrf @method('PUT')
 
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
-        <span class="badge {{ $cls }}" style="font-size:.82rem;">{{ $s }}</span>
-        <span class="badge badge-{{ $p }}" style="font-size:.82rem;">{{ ucfirst($p) }} Priority</span>
-    </div>
+        <div class="form-group">
+            <label class="form-label" for="service_type">Service Type <span style="color:var(--rust)">*</span></label>
+            <select id="service_type" name="service_type" class="form-control" required>
+                @foreach([
+                    'Room Cleaning','Extra Towels / Linens','Room Service / Food',
+                    'Maintenance / Repair','Luggage Assistance','Wake-up Call',
+                    'Laundry Service','Transportation / Taxi','Concierge / Information',
+                    'Other'
+                ] as $type)
+                    <option value="{{ $type }}" {{ old('service_type', $serviceRequest->service_type) == $type ? 'selected' : '' }}>
+                        {{ $type }}
+                    </option>
+                @endforeach
+            </select>
+            @error('service_type')<div class="form-error">{{ $message }}</div>@enderror
+        </div>
 
-    <table style="border:none;background:transparent;">
-        <tbody>
-            <tr>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:160px;">Service Type</td>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);font-weight:600;">{{ $serviceRequest->service_type }}</td>
-            </tr>
-            <tr>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Details</td>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);">{{ $serviceRequest->details ?: '—' }}</td>
-            </tr>
-            <tr>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Submitted</td>
-                <td style="padding:10px 0;border-bottom:1px solid var(--border);">{{ $serviceRequest->created_at->format('F d, Y \a\t g:i A') }}</td>
-            </tr>
-            <tr>
-                <td style="padding:10px 0;color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Last Updated</td>
-                <td style="padding:10px 0;">{{ $serviceRequest->updated_at->format('F d, Y \a\t g:i A') }}</td>
-            </tr>
-        </tbody>
-    </table>
+        <div class="form-group">
+            <label class="form-label" for="priority">Priority</label>
+            <select id="priority" name="priority" class="form-control">
+                @foreach(['Normal','High','Urgent'] as $p)
+                    <option value="{{ $p }}" {{ old('priority', $serviceRequest->priority) == $p ? 'selected' : '' }}>
+                        {{ $p }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-    <div class="form-actions" style="margin-top:24px;">
-        @if($serviceRequest->status === 'Open')
-            <a href="{{ route('my-services.edit', $serviceRequest) }}" class="btn">Edit Request</a>
-            <form method="POST" action="{{ route('my-services.destroy', $serviceRequest) }}"
-                  onsubmit="return confirm('Cancel this request?')">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn btn-danger">Cancel Request</button>
-            </form>
-        @endif
-        <a href="{{ route('my-services.index') }}" class="btn btn-secondary">← Back</a>
-    </div>
+        <div class="form-group">
+            <label class="form-label" for="details">Additional Details</label>
+            <textarea id="details" name="details" class="form-control"
+                      placeholder="Any specific instructions…">{{ old('details', $serviceRequest->details) }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                Save Changes
+            </button>
+            <a href="{{ route('my-services.show', $serviceRequest) }}" class="btn btn-secondary">← Cancel</a>
+        </div>
+    </form>
 </div>
 
 @endsection
