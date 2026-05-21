@@ -15,10 +15,14 @@ return new class extends Migration
         $table->id();
         $table->foreignId('guest_id')->nullable()->constrained();
         $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        $table->integer('floor')->nullable();
+        $table->string('room_number')->nullable();
         $table->string('service_type');
         $table->text('details')->nullable();
         $table->string('priority')->default('Normal');
         $table->string('status')->default('Open');
+        $table->json('quantities')->nullable();
+        $table->timestamp('scheduled_at')->nullable();
         $table->timestamps();
     });
 }

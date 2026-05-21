@@ -3,91 +3,152 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
+use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public function index()
+    /**
+     * Display a listing of all users.
+     */
+    public function index(Request $request): View
     {
-        $this->authorizeAdmin();
-        $users = User::latest()->paginate(15);
-        return view('users.index', compact('users'));
+        $query = User::query();
+
+        // Filter by role if provided
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        // Search by name or email
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $users = $query->orderByRaw("FIELD(role, 'admin') ASC")->latest()->paginate(15)->withQueryString();
+
+        return view('admin.users.index', compact('users'));
     }
 
-    public function create()
+    /**
+     * Show the form for creating a new user.
+     */
+    public function create(): View
     {
-        $this->authorizeAdmin();
-        return view('users.create');
+        if (auth()->user()->role === 'staff') {
+            abort(403, 'Housekeeping staff cannot create user accounts.');
+        }
+
+        return view('admin.users.create');
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created user.
+     */
+    public function store(Request $request): RedirectResponse
     {
-        $this->authorizeAdmin();
+        if (auth()->user()->role === 'staff') {
+            abort(403, 'Housekeeping staff cannot create user accounts.');
+        }
 
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-            'role'     => 'required|in:admin,staff,guest',
+            'name'       => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
+            'role'       => ['required', 'in:admin,manager,staff,front_desk,customer'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'is_active'  => ['boolean'],
         ]);
 
         User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
+            'name'       => $request->name,
+            'email'      => $request->email,
+            'password'   => Hash::make($request->password),
+            'role'       => $request->role,
+            'department' => $request->department,
+            'is_active'  => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Account for "' . $request->name . '" created successfully.');
     }
 
-    public function edit(User $user)
+    /**
+     * Display the specified user's profile.
+     */
+    public function show(User $user): View
     {
-        $this->authorizeAdmin();
-        return view('users.edit', compact('user'));
+        $user->load(['guest.serviceRequests']);
+        return view('admin.users.show', compact('user'));
     }
 
-    public function update(Request $request, User $user)
+    /**
+     * Show the form for editing a user.
+     */
+    public function edit(User $user): View
     {
-        $this->authorizeAdmin();
+        return view('admin.users.edit', compact('user'));
+    }
 
+    /**
+     * Update the specified user.
+     */
+    public function update(Request $request, User $user): RedirectResponse
+    {
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'role'  => 'required|in:admin,staff,guest',
+            'name'       => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'role'       => ['required', 'in:admin,manager,staff,front_desk,customer'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'is_active'  => ['boolean'],
+            'password'   => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user->update([
-            'name'  => $request->name,
-            'email' => $request->email,
-            'role'  => $request->role,
-        ]);
+        $data = [
+            'name'       => $request->name,
+            'email'      => $request->email,
+            'role'       => $request->role,
+            'department' => $request->department,
+            'is_active'  => $request->boolean('is_active'),
+        ];
 
+        // Only update password if a new one was provided
         if ($request->filled('password')) {
-            $request->validate(['password' => 'min:8|confirmed']);
-            $user->update(['password' => Hash::make($request->password)]);
+            $data['password'] = Hash::make($request->password);
         }
 
-        return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
+        $user->update($data);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Account for "' . $user->name . '" updated successfully.');
     }
 
-    public function destroy(User $user)
+    /**
+     * Remove the specified user.
+     */
+    public function destroy(User $user): RedirectResponse
     {
-        $this->authorizeAdmin();
-
+        // Prevent admin from deleting themselves
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot delete your own account.');
+            return redirect()->route('admin.users.index')
+                ->with('error', 'You cannot delete your own account.');
         }
 
+        $name = $user->name;
         $user->delete();
-        return redirect()->route('admin.users.index')->with('success', 'User deleted.');
-    }
 
-    private function authorizeAdmin()
-    {
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized.');
-        }
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Account for "' . $name . '" has been deleted.');
     }
 }

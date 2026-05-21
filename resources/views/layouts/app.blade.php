@@ -19,6 +19,7 @@
             --radius:10px; --nav-h:64px;
             --admin-accent:#7c3aed;
             --staff-accent:#0369a1;
+            --frontdesk-accent:#0e7490;
         }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         html{scroll-behavior:smooth}
@@ -30,6 +31,7 @@
         .role-badge{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:99px;margin-left:4px;}
         .role-badge.admin{background:var(--admin-accent);color:#fff;}
         .role-badge.staff{background:var(--staff-accent);color:#fff;}
+        .role-badge.front_desk{background:var(--frontdesk-accent);color:#fff;}
         .role-badge.guest{background:var(--gold);color:var(--ink);}
         .navbar-links{display:flex;align-items:center;gap:4px;flex:1;}
         .nav-link{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;color:rgba(255,255,255,.65);text-decoration:none;font-size:.88rem;font-weight:500;letter-spacing:.01em;transition:background .15s,color .15s;}
@@ -41,6 +43,7 @@
         .nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:.95rem;color:var(--ink);font-weight:700;}
         .nav-avatar.admin{background:var(--admin-accent);color:#fff;}
         .nav-avatar.staff{background:var(--staff-accent);color:#fff;}
+        .nav-avatar.front_desk{background:var(--frontdesk-accent);color:#fff;}
         .btn-logout{padding:6px 14px;border-radius:7px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.12);font-size:.83rem;font-weight:500;cursor:pointer;text-decoration:none;transition:background .15s,color .15s;}
         .btn-logout:hover{background:rgba(255,255,255,.18);color:#fff;}
 
@@ -53,7 +56,7 @@
         /* ── STATS ── */
         .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
         @media(max-width:700px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
-        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);}
+        .stat-card{background:var(--card-bg);border:1px solid var(--gold);border-left:4px solid var(--gold);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);}
         .stat-card.highlight{border-color:var(--gold);border-left:4px solid var(--gold);}
         .stat-label{font-size:.78rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
         .stat-value{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--ink);line-height:1;}
@@ -94,6 +97,7 @@
         .badge-urgent{background:#fee2e2;color:#991b1b;}
         .badge-admin{background:#ede9fe;color:#5b21b6;}
         .badge-staff{background:#e0f2fe;color:#075985;}
+        .badge-front_desk{background:#cffafe;color:#164e63;}
         .badge-guest{background:#fef3c7;color:#92400e;}
 
         /* ── FORM ── */
@@ -139,7 +143,7 @@
 <nav class="navbar">
     <a href="{{ route('dashboard') }}" class="navbar-brand">
         TASKINN
-        <span class="role-badge {{ $role }}">{{ ucfirst($role) }}</span>
+        <span class="role-badge {{ $role }}">{{ ucfirst(str_replace('_', ' ', $role)) }}</span>
     </a>
 
     <div class="navbar-links">
@@ -149,7 +153,7 @@
             Dashboard
         </a>
 
-        @if($role === 'guest')
+        @if($role === 'guest' || $role === 'customer')
             <a href="{{ route('my-services.create') }}" class="nav-link {{ request()->routeIs('my-services.create') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New Request
@@ -161,9 +165,25 @@
         @endif
 
         @if($role === 'staff')
-            <a href="{{ route('service-requests.index') }}" class="nav-link {{ request()->routeIs('service-requests.*') ? 'active' : '' }}">
+            <a href="{{ route('service-requests.index') }}" class="nav-link {{ request()->routeIs('service-requests.index') || (request()->routeIs('service-requests.*') && !request()->routeIs('service-requests.history')) ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                 Service Requests
+            </a>
+            <a href="{{ route('service-requests.history') }}" class="nav-link {{ request()->routeIs('service-requests.history') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                History
+            </a>
+        @endif
+
+        {{-- Front Desk: same features as staff (service requests + guests) --}}
+        @if($role === 'front_desk')
+            <a href="{{ route('service-requests.index') }}" class="nav-link {{ request()->routeIs('service-requests.index') || (request()->routeIs('service-requests.*') && !request()->routeIs('service-requests.history')) ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                Service Requests
+            </a>
+            <a href="{{ route('service-requests.history') }}" class="nav-link {{ request()->routeIs('service-requests.history') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                History
             </a>
             <a href="{{ route('guests.index') }}" class="nav-link {{ request()->routeIs('guests.*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -171,10 +191,15 @@
             </a>
         @endif
 
+        {{-- Admin: all features including user management --}}
         @if($role === 'admin')
-            <a href="{{ route('service-requests.index') }}" class="nav-link {{ request()->routeIs('service-requests.*') ? 'active' : '' }}">
+            <a href="{{ route('service-requests.index') }}" class="nav-link {{ request()->routeIs('service-requests.index') || (request()->routeIs('service-requests.*') && !request()->routeIs('service-requests.history')) ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                 Requests
+            </a>
+            <a href="{{ route('service-requests.history') }}" class="nav-link {{ request()->routeIs('service-requests.history') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                History
             </a>
             <a href="{{ route('guests.index') }}" class="nav-link {{ request()->routeIs('guests.*') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -192,10 +217,8 @@
             <div class="nav-avatar {{ $role }}">{{ strtoupper(substr(Auth::user()->name,0,1)) }}</div>
             <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ Auth::user()->name }}</span>
         </div>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="btn-logout">Sign out</button>
-        </form>
+
+        <a href="{{ route('logout.get') }}" class="btn-logout">Sign out</a>
     </div>
 </nav>
 @endauth

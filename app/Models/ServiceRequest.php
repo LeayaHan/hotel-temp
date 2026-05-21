@@ -9,10 +9,20 @@ class ServiceRequest extends Model
     protected $fillable = [
         'guest_id',
         'user_id',
+        'floor',
+        'room_number',
         'service_type',
         'details',
         'priority',
         'status',
+        'quantities',
+        'scheduled_at',
+        'cancellation_reason',
+    ];
+
+    protected $casts = [
+        'quantities'   => 'array',
+        'scheduled_at' => 'datetime',
     ];
 
     public function guest()

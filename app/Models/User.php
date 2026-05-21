@@ -17,6 +17,7 @@ class User extends Authenticatable
         'role',
         'is_active',
         'department',
+        'guest_id',
     ];
 
     protected $hidden = [
@@ -31,32 +32,28 @@ class User extends Authenticatable
     ];
 
     // Role helper methods
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    public function isManager(): bool
-    {
-        return $this->role === 'manager';
-    }
-
-    public function isStaff(): bool
-    {
-        return $this->role === 'staff';
-    }
-
-    public function isCustomer(): bool
-    {
-        return $this->role === 'customer';
-    }
+    public function isAdmin(): bool       { return $this->role === 'admin'; }
+    public function isManager(): bool     { return $this->role === 'manager'; }
+    public function isStaff(): bool       { return $this->role === 'staff'; }
+    public function isFrontDesk(): bool   { return $this->role === 'front_desk'; }
+    public function isCustomer(): bool    { return $this->role === 'customer'; }
 
     public function isAdminOrManager(): bool
     {
         return in_array($this->role, ['admin', 'manager']);
     }
 
+    public function canAccessStaffFeatures(): bool
+    {
+        return in_array($this->role, ['admin', 'staff', 'front_desk']);
+    }
+
     // Relationships
+    public function guest()
+    {
+        return $this->belongsTo(Guest::class);
+    }
+
     public function assignedTasks()
     {
         return $this->hasMany(Task::class, 'assigned_to');

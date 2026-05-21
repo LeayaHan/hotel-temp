@@ -5,23 +5,79 @@
 <div class="page-header">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div>
-            <h1>My Service Requests</h1>
-            <p>Track and manage your requests during your stay.</p>
+            <h1>Service Requests</h1>
+            <p>Open and in-progress service requests.</p>
         </div>
-        <a href="{{ route('my-services.create') }}" class="btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Request
-        </a>
     </div>
 </div>
+
+{{-- ── FILTERS ── --}}
+<div class="card" style="margin-bottom:1.5rem;">
+    <form method="GET" action="{{ route('my-services.index') }}" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+
+        <div class="form-group" style="margin:0;flex:1;min-width:180px;">
+            <label class="form-label">Service Type</label>
+            <select name="service_type" class="form-control">
+                <option value="">All Types</option>
+                @foreach([
+                    'Room Cleaning',
+                    'Extra Towels / Linens',
+                    'Room Service / Food',
+                    'Maintenance / Repair',
+                    'Luggage Assistance',
+                    'Wake-up Call',
+                    'Laundry Service',
+                    'Transportation / Taxi',
+                    'Toiletries',
+                    'Concierge / Information',
+                    'Other',
+                ] as $type)
+                    <option value="{{ $type }}" {{ request('service_type') === $type ? 'selected' : '' }}>{{ $type }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="form-group" style="margin:0;min-width:140px;">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-control">
+                <option value="">All</option>
+                @foreach(['Low', 'Normal', 'Scheduled', 'Urgent'] as $p)
+                    <option value="{{ $p }}" {{ request('priority') === $p ? 'selected' : '' }}>{{ $p }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="form-group" style="margin:0;min-width:140px;">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+                <option value="">All</option>
+                @foreach(['Open', 'In Progress', 'Completed', 'Cancelled'] as $s)
+                    <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>{{ $s }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div style="display:flex;gap:.5rem;padding-bottom:1px;">
+            <button type="submit" class="btn">Filter</button>
+            <a href="{{ route('my-services.index') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+{{-- Active filter indicator --}}
+@if(request()->hasAny(['service_type', 'priority', 'status']))
+<p style="font-size:.83rem;color:var(--muted);margin:-1rem 0 1rem;">
+    Showing filtered results —
+    <a href="{{ route('my-services.index') }}" style="color:var(--rust);">clear filters</a>
+</p>
+@endif
 
 @if($serviceRequests->isEmpty())
     <div class="card">
         <div class="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <h3>No requests yet</h3>
-            <p style="margin-bottom:20px;">Submit a request and our team will attend to you shortly.</p>
-            <a href="{{ route('my-services.create') }}" class="btn" style="display:inline-flex;">Make a Request</a>
+            <h3>No active requests</h3>
+            <p style="margin-bottom:20px;">You have no open or in-progress requests.</p>
         </div>
     </div>
 @else
@@ -66,16 +122,21 @@
                     <td style="color:var(--muted);font-size:.85rem;white-space:nowrap;">
                         {{ $req->created_at->format('M d, Y') }}
                     </td>
-                    <td>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <td style="white-space:nowrap;">
+                        <div style="display:flex;gap:6px;align-items:center;">
                             <a href="{{ route('my-services.show', $req) }}" class="btn btn-secondary btn-sm">View</a>
-                            @if($req->status === 'Open')
-                                <a href="{{ route('my-services.edit', $req) }}" class="btn btn-secondary btn-sm">Edit</a>
-                                <form method="POST" action="{{ route('my-services.destroy', $req) }}"
-                                      onsubmit="return confirm('Cancel this request?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-                                </form>
+
+                            @if(!in_array($req->status, ['Completed', 'Cancelled']))
+                                <a href="{{ route('my-services.edit', $req) }}"
+                                    class="btn btn-sm"
+                                    style="background:var(--gold);color:#fff;border:none;">
+                                    Edit
+                                </a>
+
+                                <button type="button" class="btn btn-danger btn-sm"
+                                    onclick="openCancelModal('{{ route('my-services.destroy', $req) }}')">
+                                    Cancel
+                                </button>
                             @endif
                         </div>
                     </td>
@@ -89,5 +150,57 @@
         {{ $serviceRequests->links() }}
     </div>
 @endif
+
+
+{{-- ── CANCEL MODAL ── --}}
+<div id="cancelModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:32px 28px;max-width:440px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);">
+        <h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--ink);margin:0 0 6px;">Cancel Request</h3>
+        <p style="font-size:.88rem;color:var(--muted);margin:0 0 20px;">Please let us know why you're cancelling this request.</p>
+
+        <form id="cancelForm" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="form-group" style="margin-bottom:18px;">
+                <label class="form-label" for="cancellation_reason">Reason <span style="color:var(--rust)">*</span></label>
+                <textarea id="cancellation_reason" name="cancellation_reason" class="form-control"
+                    rows="3" placeholder="e.g. No longer needed, already handled…"
+                    style="resize:vertical;"></textarea>
+                <div id="cancelReasonError" style="display:none;color:var(--rust);font-size:.8rem;margin-top:4px;">Please enter a reason.</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" onclick="closeCancelModal()" class="btn btn-secondary">Back</button>
+                <button type="submit" class="btn btn-danger" onclick="return validateCancel()">Confirm Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCancelModal(actionUrl) {
+    document.getElementById('cancelForm').action = actionUrl;
+    document.getElementById('cancellation_reason').value = '';
+    document.getElementById('cancelReasonError').style.display = 'none';
+    const modal = document.getElementById('cancelModal');
+    modal.style.display = 'flex';
+}
+
+function closeCancelModal() {
+    document.getElementById('cancelModal').style.display = 'none';
+}
+
+function validateCancel() {
+    const reason = document.getElementById('cancellation_reason').value.trim();
+    if (!reason) {
+        document.getElementById('cancelReasonError').style.display = 'block';
+        return false;
+    }
+    return true;
+}
+
+document.getElementById('cancelModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCancelModal();
+});
+</script>
 
 @endsection
