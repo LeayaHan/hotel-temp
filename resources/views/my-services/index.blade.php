@@ -41,7 +41,7 @@
             <label class="form-label">Priority</label>
             <select name="priority" class="form-control">
                 <option value="">All</option>
-                @foreach(['Low', 'Normal', 'Scheduled', 'Urgent'] as $p)
+                @foreach(['Low', 'Scheduled', 'Urgent'] as $p)
                     <option value="{{ $p }}" {{ request('priority') === $p ? 'selected' : '' }}>{{ $p }}</option>
                 @endforeach
             </select>
@@ -51,7 +51,7 @@
             <label class="form-label">Status</label>
             <select name="status" class="form-control">
                 <option value="">All</option>
-                @foreach(['Open', 'In Progress', 'Completed', 'Cancelled'] as $s)
+                @foreach(['Open', 'In Progress'] as $s)
                     <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>{{ $s }}</option>
                 @endforeach
             </select>

@@ -72,7 +72,7 @@
                 <label class="form-label">Status</label>
                 <select name="status" class="form-control">
                     <option value="">All</option>
-                    @foreach(['Open', 'In Progress', 'Completed', 'Cancelled'] as $s)
+                    @foreach(['Open', 'In Progress'] as $s)
                         <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>{{ $s }}</option>
                     @endforeach
                 </select>
